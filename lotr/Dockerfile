@@ -8,6 +8,7 @@ COPY ops.json server.properties eula.txt /server/data/
 COPY config/ /server/data/config/
 COPY libraries/ /server/bin/libraries/
 COPY mods/ /server/data/mods/
+RUN groupadd -g 1005 minecraft && useradd -u 1005 -d /home/minecraft -m -g 1005 -s /bin/bash minecraft
 
 EXPOSE 25565
 VOLUME [ "/server/data/world" ]
