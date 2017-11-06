@@ -1,7 +1,7 @@
 [{
         "id": "lotr",
         "name": "Lord of the Rings Mod",
-        "info": "Minecraft 1.7.10, Forge x.y, LotR X",
+        "info": "Minecraft 1.7.10, Forge x.y, LotR B33.4",
         "image": "minecraft-lotr",
         "version": "latest",
         "port": 25565,
