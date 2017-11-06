@@ -228,6 +228,44 @@ def handle_list_command():
     return attachments
 
 
+def container_for_server(server):
+    return None
+
+
+def container_attachment(container=None, server=None):
+    status = "Unknown"
+    image = "None"
+
+    if container:
+        # TODO
+        pass
+
+    attachment = {
+        'fallback': "{}",
+        'color': "#{}".format(randhex(3)),
+        # 'image_url': "minecraft.png",
+        'title': server['name'],
+        'text': server.get('info'),
+        'fields': [
+            {
+                'title': "ID",
+                'value': server['id'],
+                'short': True
+            },
+            {
+                'title': "Status",
+                'value': status,
+                'short': True
+            },
+            {
+                'title': "Image",
+                'value': image,
+                'short': True
+            },
+        ]
+    }
+    return attachment
+
 def handle_status_command(server_id):
     logging.debug("Handle status command.")
 
@@ -242,12 +280,25 @@ def handle_status_command(server_id):
 
         for c in containers:
             logging.debug("c: {}".format(c))
-    else:
-        server = servers.get(server_id)
-        if server is None:
-            return None
+            container_image = c.attrs['Config']['Image']
+            logging.debug("image: {}".format(image))
 
-        # server info
+            if c.status != 'running':
+                logging.debug("Container {} is not running.")
+                continue
+
+            for s in servers:
+                server_image = s['image']
+
+                if server_image == container_image:
+                    attachment = container_attachment(container=c, server=s)
+                    attachments.append(attachment)
+    else:
+        for s in servers:
+            if s['id'] == server_id:
+                c = container_for_server(s)
+                a = container_attachment(container=c, server=s)
+                attachments.append(a)
 
     return attachments
 
@@ -411,10 +462,16 @@ def process_event(event):
             send_message(channel_id, sender_id, "Here's the server list:", attachments, message_is_im=message_is_im)
         elif command == 'status':
             param1 = None
+            message = "Current server status:"
             if len(words) > 1:
                 param1 = words[1]
+                message = "Server status for {}:".format(param1)
             attachments = handle_status_command(param1)
-            send_message(channel_id, sender_id, "Current server status:", attachments, message_is_im=message_is_im)
+            if attachments is None:
+                response = "Server '{}' not found.".format(server_id)
+                send_message(channel_id, sender_id, response, None, message_is_im=message_is_im)
+                return
+            send_message(channel_id, sender_id, message, attachments, message_is_im=message_is_im)
         elif command == 'start':
             if len(words) > 1:
                 attachments = handle_start_command(server_id=words[1])
