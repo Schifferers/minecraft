@@ -8,6 +8,8 @@ import argparse
 import logging
 import sys
 import re
+import random
+import docker
 
 
 parser = argparse.ArgumentParser(description='Command-line arguments.')
@@ -28,10 +30,18 @@ members = []
 name_to_user_id_map = {}
 user_id_to_name_map = {}
 sc = None
+dc = None
 permissions = {}
 servers = []
 config = {}
 user_cache = {}
+
+
+def randhex(size=1):
+    result = []
+    for i in range(size):
+        result.append(str(random.choice("0123456789ABCDEF")) + str(random.choice("0123456789ABCDEF")))
+    return "".join(result)
 
 
 def load_permissions(file):
@@ -64,6 +74,13 @@ def load_config(file):
 def init_slack_client(token):
     logging.info("Creating Slack client.")
     client = SlackClient(token)
+    logging.debug("client: {}".format(client))
+    return client
+
+
+def init_docker_client():
+    logging.info("Creating Docker client.")
+    client = docker.from_env()
     logging.debug("client: {}".format(client))
     return client
 
@@ -167,6 +184,136 @@ def get_user(user_id):
     return None
 
 
+def format_server_status(server_info):
+    attachment = {
+        'fallback': "{:>10}: {}\n  {}".format(server_info['id'], server_info['name'], server_info['info']),
+        'color': "#{}".format(randhex(3)),
+        # 'image_url': "minecraft.png",
+        'title': server_info['name'],
+        'text': server_info.get('info'),
+        'fields': [
+            {
+                'title': "ID",
+                'value': server_info['id'],
+                'short': True
+            },
+            # {
+            #     'title': "Name",
+            #     'value': s['info'],
+            #     'short': True
+            # },
+            {
+                'title': "Status",
+                'value': get_server_status(server_info['id']),
+                'short': True
+            }
+        ]
+    }
+    return attachment
+
+
+def get_server_status(server_id):
+    return "TODO"
+
+
+def handle_list_command():
+    logging.debug("Handle list command.")
+
+    # format the list of servers for display
+    attachments = []
+    for s in servers:
+        attachment = format_server_status(s)
+        attachments.append(attachment)
+
+    return attachments
+
+
+def handle_status_command(server_id):
+    logging.debug("Handle status command.")
+
+    attachments = []
+
+    # server_id not found
+    # server_id status
+    # default server status
+    if server_id is None:
+        # figure out which server is running and display its status
+        containers = dc.containers.list()
+
+        for c in containers:
+            logging.debug("c: {}".format(c))
+    else:
+        server = servers.get(server_id)
+        if server is None:
+            return None
+
+        # server info
+
+    return attachments
+
+
+def handle_start_command(server_id):
+    logging.debug("Handle start command.")
+
+    attachments = []
+
+    return attachments
+
+
+def handle_stop_command(server_id):
+    logging.debug("Handle stop command.")
+
+    attachments = []
+
+    return attachments
+
+
+def send_message(channel_id, sender_id, response, attachments, message_is_im=False):
+    logging.debug("Sending message to channel {}...".format(channel_id))
+    api = "chat.postMessage"
+    if not message_is_im:
+        response = "<@{}> {}".format(sender_id, response)
+        # api = "chat.postEphemeral"
+    sc.api_call(api, channel=channel_id, as_user=True, text=response, attachments=attachments)
+
+
+def handle_help():
+    attachments = [
+        {
+            'fallback': "list",
+            'color': "#ff0ff0",
+            'title': "List",
+            'text': "`list`\nList the servers that can be managed, and their current status",
+            "mrkdwn_in": ["text"]
+        }
+        ,
+        {
+            'fallback': "status [<server-id>]",
+            'color': "#0000ff",
+            'title': "Status",
+            'text': "`status [<server-id>]`\nGet the status of all servers, or for a particular server",
+            "mrkdwn_in": ["text"]
+        }
+        ,
+        {
+            'fallback': "start <server-id>",
+            'color': "#00ff00",
+            'title': "Start",
+            'text': "`start <server-id>`\nStart a particular server",
+            "mrkdwn_in": ["text"]
+        }
+        ,
+        {
+            'fallback': "stop <server-id>",
+            'color': "#ff0000",
+            'title': "Stop",
+            'text': "`stop <server-id>`\nStop a particular server",
+            "mrkdwn_in": ["text"]
+        }
+    ]
+    return attachments
+
+
 def process_event(event):
     logging.debug("event: {}, {}".format(type(event), json.dumps(event, sort_keys=True, indent=4)))
 
@@ -260,12 +407,30 @@ def process_event(event):
             return
 
         if command == 'list':
-            # format the list of servers for display
-            if message_is_im:
-                response = "{}".format(str(servers))
+            attachments = handle_list_command()
+            send_message(channel_id, sender_id, "Here's the server list:", attachments, message_is_im=message_is_im)
+        elif command == 'status':
+            param1 = None
+            if len(words) > 1:
+                param1 = words[1]
+            attachments = handle_status_command(param1)
+            send_message(channel_id, sender_id, "Current server status:", attachments, message_is_im=message_is_im)
+        elif command == 'start':
+            if len(words) > 1:
+                attachments = handle_start_command(server_id=words[1])
             else:
-                response = "<@{}>: {}".format(sender_id, str(servers))
-            sc.rtm_send_message(channel=channel_id, message=response)
+                response = "<@{}>: Usage: `start <server-id>`".format(sender_id)
+                sc.rtm_send_message(channel=channel_id, message=response)
+        elif command == 'stop':
+            if len(words) > 1:
+                attachments = handle_stop_command(server_id=words[1])
+            else:
+                response = "<@{}>: Usage: `stop <server-id>`".format(sender_id)
+                sc.rtm_send_message(channel=channel_id, message=response)
+        elif command == 'help':
+            attachments = handle_help()
+            response = "Here are the commands I understand:"
+            send_message(channel_id, sender_id, response, attachments, message_is_im=message_is_im)
 
 
 def main():
@@ -299,6 +464,7 @@ if __name__ == "__main__":
         logging.info("Overriding Slack token from configuration with environment SLACK_API_TOKEN.")
         slack_token = env_slack_token
     sc = init_slack_client(slack_token)
+    dc = init_docker_client()
 
     members, name_to_user_id_map, user_id_to_name_map = load_members()
     my_identity = load_identity()
