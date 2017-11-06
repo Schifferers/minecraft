@@ -1,4 +1,25 @@
 [{
-    "name": "lotr",
-    "info": "Lord of the Rings Mod"
-}]
+        "id": "lotr",
+        "name": "Lord of the Rings Mod",
+        "info": "Minecraft 1.7.10, Forge x.y, LotR X",
+        "image": "minecraft-lotr",
+        "version": "latest",
+        "port": 25565,
+        "volumes": [{
+            "host": "/usr/local/minecraft/servers/forge-1.7.10/world",
+            "container": "/server/world"
+        }]
+    },
+    {
+        "id": "v1.12",
+        "name": "Vanilla 1.12",
+        "info": "Minecraft 1.12.2",
+        "image": "minecraft",
+        "version": "latest",
+        "port": 25565,
+        "volumes": [{
+            "host": "/usr/local/minecraft/servers/1.12.2/world",
+            "container": "/server/world"
+        }]
+    }
+]
