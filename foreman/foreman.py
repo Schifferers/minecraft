@@ -37,6 +37,25 @@ config = {}
 user_cache = {}
 
 
+# Exceptions
+class ServerIdNotFoundException(Exception):
+    def __init__(self, server_id):
+        super(ServerIdNotFoundException, self).__init__(server_id)
+        self.server_id = server_id
+
+class MissingArgumentException(Exception):
+    def __init__(self, arg_name):
+        super(MissingArgumentException, self).__init__(arg_name)
+        self.arg_name = arg_name
+
+class ContainerCreationException(Exception):
+    def __init__(self, message):
+        super(ContainerCreationException, self).__init__(message)
+        self.message = message
+
+
+# Functions
+
 def randhex(size=1):
     result = []
     for i in range(size):
@@ -184,36 +203,19 @@ def get_user(user_id):
     return None
 
 
-def format_server_status(server_info):
-    attachment = {
-        'fallback': "{:>10}: {}\n  {}".format(server_info['id'], server_info['name'], server_info['info']),
-        'color': "#{}".format(randhex(3)),
-        # 'image_url': "minecraft.png",
-        'title': server_info['name'],
-        'text': server_info.get('info'),
-        'fields': [
-            {
-                'title': "ID",
-                'value': server_info['id'],
-                'short': True
-            },
-            # {
-            #     'title': "Name",
-            #     'value': s['info'],
-            #     'short': True
-            # },
-            {
-                'title': "Status",
-                'value': get_server_status(server_info['id']),
-                'short': True
-            }
-        ]
-    }
-    return attachment
-
-
 def get_server_status(server_id):
-    return "TODO"
+    logging.debug("Getting server status for ID '{}'".format(server_id))
+
+    try:
+        container = dc.containers.get(server_id)
+        status = container.status
+        return status.capitalize()
+    except docker.errors.NotFound:
+        return "Offline"
+    except docker.errors.APIError:
+        return "Error"
+
+    return "WTF"
 
 
 def handle_list_command():
@@ -222,7 +224,7 @@ def handle_list_command():
     # format the list of servers for display
     attachments = []
     for s in servers:
-        attachment = format_server_status(s)
+        attachment = server_status_attachment(container=None, server=s)
         attachments.append(attachment)
 
     return attachments
@@ -232,16 +234,16 @@ def container_for_server(server):
     return None
 
 
-def container_attachment(container=None, server=None):
-    status = "Unknown"
+def server_status_attachment(container=None, server=None):
+    status = "Offline"
     image = "None"
 
     if container:
-        # TODO
-        pass
+        status = container.status.capitalize()
+        image = container.image
 
     attachment = {
-        'fallback': "{}",
+        'fallback': "{:>10}: {}\n  {}".format(server['id'], server['name'], server['info']),
         'color': "#{}".format(randhex(3)),
         # 'image_url': "minecraft.png",
         'title': server['name'],
@@ -276,37 +278,59 @@ def handle_status_command(server_id):
     # default server status
     if server_id is None:
         # figure out which server is running and display its status
-        containers = dc.containers.list()
+        containers = dc.containers.list(all=True)
 
-        for c in containers:
-            logging.debug("c: {}".format(c))
-            container_image = c.attrs['Config']['Image']
-            logging.debug("image: {}".format(image))
+        for s in servers:
+            server_image = s['image']
 
-            if c.status != 'running':
-                logging.debug("Container {} is not running.")
-                continue
-
-            for s in servers:
-                server_image = s['image']
+            found = False
+            for c in containers:
+                logging.debug("c: {}".format(c))
+                container_image = c.attrs['Config']['Image']
+                logging.debug("image: {}".format(container_image))
 
                 if server_image == container_image:
-                    attachment = container_attachment(container=c, server=s)
+                    attachment = server_status_attachment(container=c, server=s)
                     attachments.append(attachment)
+                    found = True
+                    break
+            if not found:
+                attachment = server_status_attachment(container=None, server=s)
+                attachments.append(attachment)
     else:
         for s in servers:
             if s['id'] == server_id:
                 c = container_for_server(s)
-                a = container_attachment(container=c, server=s)
+                a = server_status_attachment(container=c, server=s)
                 attachments.append(a)
+        if len(attachments) == 0:
+            raise ServerIdNotFoundException(server_id)
 
     return attachments
 
 
 def handle_start_command(server_id):
-    logging.debug("Handle start command.")
+    logging.debug("Handle start command for server ID {}.".format(server_id))
+
+    if server_id is None:
+        raise MissingArgumentException('server_id')
+
+    server = None
+    for s in servers:
+        if 'id' in s and s['id'] == server_id:
+            server = s
+            break
+    if server is None:
+        raise ServerIdNotFoundException(server_id)
 
     attachments = []
+
+    try:
+        container = dc.containers.run(image)
+    except docker.errors.NotFound:
+        pass
+    except docker.errors.APIError:
+        pass
 
     return attachments
 
@@ -390,6 +414,9 @@ def process_event(event):
         if sender_id is None:
             logging.debug("User ID not found in dictionary, skipping it.")
             return
+        if sender_id == my_identity:
+            logging.debug("Sender of message was us; skipping it.")
+            return
         user = get_user(sender_id)
         if user is None:
             logging.warning("User not found for sender ID {}.".format(sender_id))
@@ -423,7 +450,9 @@ def process_event(event):
             logging.info("Nothing found in command sequence, skipping it.")
             return
 
-        command = words[0]
+        logging.debug("Do command check.")
+        command = words[0].lower()
+        logging.debug("COMMAND: {}".format(command))
         if command not in permissions:
             logging.warning("Command found in text '{}' is not in the permissions list.".format(command))
             if message_is_im:
@@ -433,15 +462,20 @@ def process_event(event):
             sc.rtm_send_message(channel=channel_id, message=response)
             return
 
+        logging.debug("Perform permissions check.")
         perm_list = permissions[command]
         has_permission = False
         if perm_list is None:
             logging.info("Permissions check succeeded because no permissions required for command {}".format(command))
             has_permission = True
         elif type(perm_list) is list:
+            logging.debug("Permission list for command has users: {}".format(perm_list))
             for username in perm_list:
+                logging.debug("username: {}".format(username))
                 user_id = name_to_user_id_map.get(username)
+                logging.debug("user_id: {}".format(user_id))
                 if user_id is None:
+                    logging.warning("Username not found in permission list for command '{}': {}".format(command, username))
                     return
                 if sender_id == user_id:
                     has_permission = True
@@ -457,37 +491,66 @@ def process_event(event):
             sc.rtm_send_message(channel=channel_id, message=response)
             return
 
-        if command == 'list':
-            attachments = handle_list_command()
-            send_message(channel_id, sender_id, "Here's the server list:", attachments, message_is_im=message_is_im)
-        elif command == 'status':
-            param1 = None
-            message = "Current server status:"
-            if len(words) > 1:
-                param1 = words[1]
-                message = "Server status for {}:".format(param1)
-            attachments = handle_status_command(param1)
-            if attachments is None:
-                response = "Server '{}' not found.".format(server_id)
-                send_message(channel_id, sender_id, response, None, message_is_im=message_is_im)
-                return
-            send_message(channel_id, sender_id, message, attachments, message_is_im=message_is_im)
-        elif command == 'start':
-            if len(words) > 1:
-                attachments = handle_start_command(server_id=words[1])
+        logging.debug("Handle command: {}, {}".format(command, words))
+        try:
+            if command == 'list':
+                logging.debug("COMMAND: list; {}".format(words))
+                attachments = handle_list_command()
+                send_message(channel_id, sender_id, "Here's the server list:", attachments, message_is_im=message_is_im)
+            elif command == 'status':
+                logging.debug("COMMAND: status; {}".format(words))
+                param1 = None
+                message = "Current server status:"
+                if len(words) > 1:
+                    server_id = words[1]
+                    message = "Server status for {}:".format(server_id)
+                attachments = handle_status_command(server_id)
+                if len(attachments) == 0:
+                    if len(servers) > 0:
+                        response = "Could not get server status, even though I manage {} server(s).".format(len(servers))
+                        send_message(channel_id, sender_id, response, None, message_is_im=message_is_im)
+                        return
+                if len(attachments) != len(servers):
+                    response = "Could not get status for all servers. Here are the ones I did get:"
+                send_message(channel_id, sender_id, message, attachments, message_is_im=message_is_im)
+            elif command == 'start':
+                logging.debug("COMMAND: start; {}".format(words))
+                if len(words) > 1:
+                    server_id = words[1]
+                    attachments = handle_start_command(server_id=server_id)
+                    message = "Server '{}' started:".format(server_id)
+                    send_message(channel_id, sender_id, message, attachments, message_is_im=message_is_im)
+                else:
+                    response = "<@{}>: Usage: `start <server-id>`".format(sender_id)
+                    sc.rtm_send_message(channel=channel_id, message=response)
+            elif command == 'stop':
+                logging.debug("COMMAND: stop; {}".format(words))
+                if len(words) > 1:
+                    attachments = handle_stop_command(server_id=words[1])
+                else:
+                    response = "<@{}>: Usage: `stop <server-id>`".format(sender_id)
+                    sc.rtm_send_message(channel=channel_id, message=response)
+            elif command == 'help':
+                logging.debug("COMMAND: help; {}".format(words))
+                attachments = handle_help()
+                response = "Here are the commands I understand:"
+                send_message(channel_id, sender_id, response, attachments, message_is_im=message_is_im)
             else:
-                response = "<@{}>: Usage: `start <server-id>`".format(sender_id)
-                sc.rtm_send_message(channel=channel_id, message=response)
-        elif command == 'stop':
-            if len(words) > 1:
-                attachments = handle_stop_command(server_id=words[1])
-            else:
-                response = "<@{}>: Usage: `stop <server-id>`".format(sender_id)
-                sc.rtm_send_message(channel=channel_id, message=response)
-        elif command == 'help':
-            attachments = handle_help()
-            response = "Here are the commands I understand:"
-            send_message(channel_id, sender_id, response, attachments, message_is_im=message_is_im)
+                logging.debug("COMMAND UNKNOWN")
+                response = "Unknown command '{}'. Here are the commands I understand:".format(command)
+                attachments = handle_help()
+                send_message(channel_id, sender_id, response, attachments, message_is_im=message_is_im)
+        except ServerIdNotFoundException as sinf:
+            response = "Server '{}' not found.".format(sinf.server_id)
+            send_message(channel_id, sender_id, response, None, message_is_im=message_is_im)
+            return
+        except MissingArgumentException as ma:
+            response = "Missing value for argument '{}'.".format(sinf.arg_name)
+            send_message(channel_id, sender_id, response, None, message_is_im=message_is_im)
+            return
+        except:
+            logging.exception("Unknown exception raised.")
+            return
 
 
 def main():
