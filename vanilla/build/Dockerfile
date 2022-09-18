@@ -1,4 +1,4 @@
-FROM openjdk:17
+FROM openjdk:17-slim-bullseye
 LABEL maintainer="Paul Schifferer <paul@schifferers.net>"
 
 RUN apt-get update && apt-get install -y wget
