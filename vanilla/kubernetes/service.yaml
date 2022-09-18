@@ -1,0 +1,15 @@
+---
+kind: Service
+apiVersion: v1
+
+metadata:
+  name: vanilla
+
+spec:
+  selector:
+    minecraft: vanilla
+  type: ClusterIP
+  ports:
+    - name: minecraft
+      port: 25565
+      targetPort: 25565

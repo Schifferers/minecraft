@@ -1,0 +1,36 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+
+metadata:
+  name: vanilla
+
+spec:
+  selector:
+    matchLabels:
+      minecraft: vanilla
+  serviceName: vanilla
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        minecraft: vanilla
+    spec:
+      serviceAccountName: minecraft
+      containers:
+        - name: minecraft
+          image: ghcr.io/schifferers/minecraft:vanilla
+          ports:
+            - containerPort: 25565
+              name: minecraft
+          volumeMounts:
+            - name: vanilla-data
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: vanilla-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
