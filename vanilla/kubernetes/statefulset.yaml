@@ -26,9 +26,15 @@ spec:
           volumeMounts:
             - name: vanilla-data
               mountPath: /data
+            - name: files
+              mountPath: /config
+      volumes:
+        - name: files
+          configMap:
+            name: vanilla-files
   volumeClaimTemplates:
     - metadata:
-        name: vanilla-data
+        name: vanilla-world
       spec:
         accessModes: ["ReadWriteOnce"]
         resources:
