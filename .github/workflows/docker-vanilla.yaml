@@ -60,7 +60,7 @@ jobs:
         id: docker_build
         uses: docker/build-push-action@v3
         with:
-          dockerfile: vanilla/build/Dockerfile
+          file: vanilla/build/Dockerfile
           context: .
           push: true
           no-cache: true
@@ -70,4 +70,3 @@ jobs:
             BUILD_JOB=${{ github.job }}
             BUILD_SHA=${{ github.sha }}
             BUILD_DATE=${{ steps.getbuilddate.outputs.isodate }}
-            BUILD_VERSION=${{ steps.previoustag.outputs.tag }}
