@@ -1,7 +1,7 @@
 FROM openjdk:17-slim-bullseye
 LABEL maintainer="Paul Schifferer <paul@schifferers.net>"
 
-RUN apt-get update && apt-get install -y wget
+RUN apt-get update && apt-get install -y wget jq curl
 COPY scripts/fetch-server.sh /bin
 RUN mkdir /server && cd /server && /bin/fetch-server.sh -t release
 COPY eula.txt /data
