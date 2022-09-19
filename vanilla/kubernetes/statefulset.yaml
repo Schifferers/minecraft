@@ -34,7 +34,7 @@ spec:
             name: vanilla-files
   volumeClaimTemplates:
     - metadata:
-        name: vanilla-world
+        name: vanilla-data
       spec:
         accessModes: ["ReadWriteOnce"]
         resources:
