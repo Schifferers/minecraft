@@ -1,2 +1,3 @@
-# minecraft-docker
-Docker setups for Minecraft
+# minecraft
+
+Setups for running Minecraft in Docker and Kubernetes
