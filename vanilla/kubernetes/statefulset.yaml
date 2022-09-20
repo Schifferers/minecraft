@@ -25,12 +25,15 @@ spec:
             - "-c"
             - |
               set -xe
+              find /setup /config /server -print
               cp -rav /setup/* /data
           volumeMounts:
             - name: vanilla-data
               mountPath: /data
             - name: server-files
               mountPath: /setup
+            - name: jvm-files
+              mountPath: /config
       containers:
         - name: minecraft
           image: ghcr.io/schifferers/minecraft:vanilla
