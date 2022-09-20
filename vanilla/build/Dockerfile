@@ -3,12 +3,12 @@ LABEL maintainer="Paul Schifferer <paul@schifferers.net>"
 
 RUN apt-get update && apt-get install -y wget jq curl
 COPY scripts/fetch-server.sh /bin
-RUN mkdir -p /server /data && cd /server && /bin/fetch-server.sh -t release
+RUN mkdir -p /server /data /config && cd /server && /bin/fetch-server.sh -t release
 # COPY eula.txt /data
-COPY vanilla/build/user_jvm_args.txt /server
+# COPY vanilla/build/user_jvm_args.txt /server
 
 EXPOSE 25565
 VOLUME [ "/data" ]
 
 WORKDIR /data
-CMD java @/server/user_jvm_args.txt "$@"
+CMD java @/config/user_jvm_args.txt "$@"

@@ -1,6 +1,6 @@
 -Dfml.queryResult=confirm
 -Djava.awt.headless=true
--Xms4G
+-Xms2G
 -Xmx8G
 -XX:+UseG1GC
 -XX:+ParallelRefProcEnabled

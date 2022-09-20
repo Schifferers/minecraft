@@ -31,7 +31,7 @@ spec:
           volumeMounts:
             - name: vanilla-data
               mountPath: /data
-            - name: files
+            - name: server-files
               mountPath: /setup
       containers:
         - name: minecraft
@@ -42,10 +42,15 @@ spec:
           volumeMounts:
             - name: vanilla-data
               mountPath: /data
+            - name: jvm-files
+              mountPath: /config
       volumes:
-        - name: files
+        - name: server-files
           configMap:
-            name: vanilla-files
+            name: vanilla-server-files
+        - name: jvm-files
+          configMap:
+            name: vanilla-jvm-files
   volumeClaimTemplates:
     - metadata:
         name: vanilla-data

@@ -11,10 +11,12 @@ resources:
   - ingress-route.yaml
 
 configMapGenerator:
-  - name: vanilla-files
+  - name: vanilla-server-files
     files:
       - server.properties
       - eula.txt
+  - name: vanilla-jvm-files
+      - user_jvm_args.txt
 
 commonLabels:
   app: minecraft
