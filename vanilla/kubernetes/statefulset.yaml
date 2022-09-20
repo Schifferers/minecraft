@@ -22,7 +22,7 @@ spec:
           image: busybox
           command:
             - /bin/bash
-            - "-c"
+            - "-xec"
           args:
             - |
               find .;
