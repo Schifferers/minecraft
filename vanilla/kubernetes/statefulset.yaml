@@ -21,7 +21,7 @@ spec:
         - name: setup
           image: busybox
           command:
-            - bash
+            - sh
             - "-xec"
             - |
               find .;
