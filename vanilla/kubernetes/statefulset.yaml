@@ -25,7 +25,7 @@ spec:
             - "-c"
             - |
               set -xe
-              find /setup /config /server -print
+              find /setup /config /data -print
               cp -rav /setup/* /data
           volumeMounts:
             - name: vanilla-data
