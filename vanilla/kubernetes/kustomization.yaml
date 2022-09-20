@@ -16,7 +16,11 @@ configMapGenerator:
       - server.properties
       - eula.txt
   - name: vanilla-jvm-files
+    files:
       - user_jvm_args.txt
+
+generatorOptions:
+  disableNameSuffixHash: true
 
 commonLabels:
   app: minecraft
