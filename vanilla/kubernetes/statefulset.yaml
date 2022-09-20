@@ -20,6 +20,7 @@ spec:
       initContainers:
         - name: setup
           image: busybox
+          imagePullPolicy: IfNotPresent
           command:
             - sh
             - "-c"
@@ -37,6 +38,7 @@ spec:
       containers:
         - name: minecraft
           image: ghcr.io/schifferers/minecraft:vanilla
+          imagePullPolicy: Always
           ports:
             - containerPort: 25565
               name: minecraft
