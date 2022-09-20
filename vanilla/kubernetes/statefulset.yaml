@@ -20,6 +20,9 @@ spec:
       initContainers:
         - name: setup
           image: busybox
+          command:
+            - /bin/bash
+            - "-c"
           args:
             - |
               cp -rav /setup/* /data
