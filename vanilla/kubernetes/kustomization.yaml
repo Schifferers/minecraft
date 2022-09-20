@@ -14,7 +14,7 @@ configMapGenerator:
   - name: vanilla-files
     files:
       - server.properties
-      - user_jvm_args.txt
+      - eula.txt
 
 commonLabels:
   app: minecraft

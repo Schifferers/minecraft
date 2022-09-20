@@ -17,6 +17,17 @@ spec:
         minecraft: vanilla
     spec:
       serviceAccountName: minecraft
+      initContainers:
+        - name: setup
+          image: busybox
+          args:
+            - |
+              cp -rav /setup/* /data
+          volumeMounts:
+            - name: vanilla-data
+              mountPath: /data
+            - name: files
+              mountPath: /setup
       containers:
         - name: minecraft
           image: ghcr.io/schifferers/minecraft:vanilla
@@ -26,8 +37,6 @@ spec:
           volumeMounts:
             - name: vanilla-data
               mountPath: /data
-            - name: files
-              mountPath: /config
       volumes:
         - name: files
           configMap:
