@@ -21,9 +21,8 @@ spec:
         - name: setup
           image: busybox
           command:
-            - /bin/bash
+            - bash
             - "-xec"
-          args:
             - |
               find .;
               ls -laR;
