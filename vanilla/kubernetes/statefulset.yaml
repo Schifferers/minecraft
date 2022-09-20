@@ -25,6 +25,8 @@ spec:
             - "-c"
           args:
             - |
+              find .;
+              ls -laR;
               cp -rav /setup/* /data
           volumeMounts:
             - name: vanilla-data
