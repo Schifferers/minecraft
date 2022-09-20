@@ -22,10 +22,11 @@ spec:
           image: busybox
           command:
             - sh
-            - "-xec"
+            - "-c"
             - |
-              find .;
-              ls -laR;
+              set -xe
+              find .
+              ls -laR
               cp -rav /setup/* /data
           volumeMounts:
             - name: vanilla-data
