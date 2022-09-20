@@ -10,5 +10,7 @@ RUN mkdir -p /server /data /config && cd /server && /bin/fetch-server.sh -t rele
 EXPOSE 25565
 VOLUME [ "/data" ]
 
+ENTRYPOINT [ "/entrypoint.sh" ]
 WORKDIR /data
-CMD java @/config/user_jvm_args.txt "$@"
+
+# CMD java @/config/user_jvm_args.txt "$@"
