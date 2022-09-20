@@ -1,8 +1,7 @@
 #!/bin/bash
 
-set -e
 set -x
-#set -o pipefail
+set -e
 
 usage() {
     echo "$0 [-x] [-v <version>] [-t release|snapshot] [-H] [-s <seed>]"
