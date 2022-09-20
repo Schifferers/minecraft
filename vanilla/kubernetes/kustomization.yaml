@@ -17,6 +17,7 @@ configMapGenerator:
       - user_jvm_args.txt
 
 commonLabels:
-  minecraft: vanilla
-  type: release
-  version: "1.19.2"
+  app: minecraft
+  type: vanilla
+  mods: "false"
+  version: "1.19.x"
