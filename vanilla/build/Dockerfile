@@ -4,7 +4,7 @@ LABEL maintainer="Paul Schifferer <paul@schifferers.net>"
 RUN apt-get update && apt-get install -y wget jq curl
 COPY scripts/fetch-server.sh /bin
 RUN mkdir -p /server /data /config && cd /server && /bin/fetch-server.sh -t release
-ADD entrypoint.sh /
+ADD vanilla/build/entrypoint.sh /
 # COPY eula.txt /data
 # COPY vanilla/build/user_jvm_args.txt /server
 
