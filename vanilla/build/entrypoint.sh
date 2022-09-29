@@ -7,6 +7,4 @@ cd /data
 
 find /data /config /server -print
 
-java @/config/user_jvm_args.txt \
-    -jar /server/minecraft_server.jar \
-    nogui
+java @/config/user_jvm_args.txt

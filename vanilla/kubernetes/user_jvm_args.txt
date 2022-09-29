@@ -22,3 +22,5 @@
 -XX:MaxTenuringThreshold=1
 -Dusing.aikars.flags=https://mcflags.emc.gs
 -Daikars.new.flags=true
+-jar /server/minecraft_server.jar
+nogui
