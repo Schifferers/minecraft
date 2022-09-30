@@ -6,6 +6,8 @@ metadata:
   name: vanilla
 
 spec:
+  nodeSelector:
+    gluster: static
   selector:
     matchLabels:
       minecraft: vanilla

@@ -1,3 +1,4 @@
+-Dforge.logging.console.level=debug
 -Dfml.queryResult=confirm
 -Djava.awt.headless=true
 -Xms2G

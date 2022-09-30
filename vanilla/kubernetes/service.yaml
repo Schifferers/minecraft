@@ -12,4 +12,4 @@ spec:
   ports:
     - name: minecraft
       port: 25565
-      targetPort: 25565
+      targetPort: minecraft
